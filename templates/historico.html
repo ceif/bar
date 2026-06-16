@@ -1,0 +1,509 @@
+<!DOCTYPE html>
+<html lang="pt">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Histórico de Pedidos</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            min-height: 100vh;
+            padding: 20px;
+        }
+
+        .container {
+            max-width: 1000px;
+            margin: 0 auto;
+            background: white;
+            border-radius: 20px;
+            box-shadow: 0 20px 60px rgba(0,0,0,0.3);
+            overflow: hidden;
+        }
+
+        .header {
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            color: white;
+            padding: 30px;
+            text-align: center;
+            position: relative;
+        }
+
+        .header h1 {
+            font-size: 2em;
+            margin-bottom: 10px;
+        }
+
+        .header p {
+            opacity: 0.9;
+        }
+
+        .btn-voltar {
+            position: absolute;
+            top: 20px;
+            left: 20px;
+            background: rgba(255,255,255,0.2);
+            color: white;
+            border: none;
+            padding: 8px 16px;
+            border-radius: 8px;
+            cursor: pointer;
+            font-size: 14px;
+            transition: all 0.3s;
+        }
+
+        .btn-voltar:hover {
+            background: rgba(255,255,255,0.3);
+            transform: translateY(-2px);
+        }
+
+        .filtros {
+            padding: 20px;
+            background: #f8f9fa;
+            border-bottom: 1px solid #e0e0e0;
+            display: flex;
+            gap: 10px;
+            justify-content: center;
+        }
+
+        .btn-filtro {
+            padding: 8px 20px;
+            border: none;
+            border-radius: 8px;
+            cursor: pointer;
+            font-weight: 600;
+            transition: all 0.3s;
+            background: #e0e0e0;
+            color: #333;
+        }
+
+        .btn-filtro.active {
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            color: white;
+        }
+
+        .btn-filtro:hover {
+            transform: translateY(-2px);
+        }
+
+        .stats {
+            display: flex;
+            justify-content: space-around;
+            padding: 20px;
+            background: #f8f9fa;
+            border-bottom: 1px solid #e0e0e0;
+        }
+
+        .stat-card {
+            text-align: center;
+        }
+
+        .stat-number {
+            font-size: 2em;
+            font-weight: bold;
+            color: #667eea;
+        }
+
+        .stat-label {
+            color: #666;
+            margin-top: 5px;
+        }
+
+        .pedidos-lista {
+            padding: 20px;
+            max-height: 600px;
+            overflow-y: auto;
+        }
+
+        .pedido-card {
+            background: white;
+            border: 1px solid #e0e0e0;
+            border-radius: 12px;
+            margin-bottom: 20px;
+            padding: 20px;
+            transition: all 0.3s;
+            box-shadow: 0 2px 5px rgba(0,0,0,0.1);
+        }
+
+        .pedido-card.entregue {
+            background: #f0f9f0;
+            border-color: #51cf66;
+            opacity: 0.85;
+        }
+
+        .pedido-card.entregue .pedido-id {
+            color: #51cf66;
+        }
+
+        .pedido-card:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 5px 15px rgba(0,0,0,0.1);
+        }
+
+        .pedido-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 15px;
+            padding-bottom: 10px;
+            border-bottom: 2px solid #667eea;
+        }
+
+        .pedido-info {
+            display: flex;
+            align-items: center;
+            gap: 15px;
+        }
+
+        .pedido-checkbox {
+            width: 24px;
+            height: 24px;
+            cursor: pointer;
+            accent-color: #51cf66;
+        }
+
+        .pedido-id {
+            font-weight: bold;
+            color: #667eea;
+            font-size: 1.1em;
+        }
+
+        .pedido-status {
+            padding: 4px 12px;
+            border-radius: 20px;
+            font-size: 0.85em;
+            font-weight: 600;
+        }
+
+        .status-entregue {
+            background: #51cf66;
+            color: white;
+        }
+
+        .status-pendente {
+            background: #ffa500;
+            color: white;
+        }
+
+        .pedido-data {
+            color: #666;
+            font-size: 0.9em;
+        }
+
+        .pedido-itens {
+            margin-bottom: 15px;
+        }
+
+        .pedido-item {
+            display: flex;
+            justify-content: space-between;
+            padding: 8px 0;
+            border-bottom: 1px solid #f0f0f0;
+        }
+
+        .pedido-total {
+            text-align: right;
+            padding-top: 10px;
+            margin-top: 10px;
+            border-top: 2px solid #e0e0e0;
+            font-weight: bold;
+            font-size: 1.2em;
+            color: #667eea;
+        }
+
+        .sem-pedidos {
+            text-align: center;
+            padding: 40px;
+            color: #666;
+        }
+
+        .sem-pedidos-icon {
+            font-size: 4em;
+            margin-bottom: 20px;
+        }
+
+        .mensagem {
+            position: fixed;
+            bottom: 20px;
+            right: 20px;
+            padding: 12px 20px;
+            border-radius: 10px;
+            color: white;
+            font-weight: 500;
+            animation: slideIn 0.3s ease-out;
+            z-index: 1001;
+        }
+
+        .mensagem-sucesso {
+            background: #51cf66;
+        }
+
+        .mensagem-erro {
+            background: #ff6b6b;
+        }
+
+        @keyframes slideIn {
+            from {
+                transform: translateX(100%);
+                opacity: 0;
+            }
+            to {
+                transform: translateX(0);
+                opacity: 1;
+            }
+        }
+
+        @media (max-width: 768px) {
+            .pedido-header {
+                flex-direction: column;
+                align-items: flex-start;
+                gap: 10px;
+            }
+            
+            .pedido-info {
+                width: 100%;
+                justify-content: space-between;
+            }
+            
+            .stats {
+                flex-direction: column;
+                gap: 15px;
+            }
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <div class="header">
+            <button class="btn-voltar" onclick="window.location.href='/'">
+                ← Voltar
+            </button>
+            <h1>📊 Histórico de Pedidos</h1>
+        </div>
+
+        <div class="filtros">
+            <button class="btn-filtro active" onclick="filtrarPedidos('todos')">Todos</button>
+            <button class="btn-filtro" onclick="filtrarPedidos('pendentes')">Pendentes</button>
+            <button class="btn-filtro" onclick="filtrarPedidos('entregues')">Entregues</button>
+        </div>
+
+        <div class="stats" id="stats">
+            <div class="stat-card">
+                <div class="stat-number" id="totalPedidos">0</div>
+                <div class="stat-label">Total de Pedidos</div>
+            </div>
+            <div class="stat-card">
+                <div class="stat-number" id="pedidosPendentes">0</div>
+                <div class="stat-label">Pendentes</div>
+            </div>
+            <div class="stat-card">
+                <div class="stat-number" id="pedidosEntregues">0</div>
+                <div class="stat-label">Entregues</div>
+            </div>
+            <div class="stat-card">
+                <div class="stat-number" id="faturamentoTotal">€0.00</div>
+                <div class="stat-label">Faturação Total</div>
+            </div>
+        </div>
+
+        <div class="pedidos-lista" id="pedidosLista">
+            <div class="sem-pedidos">
+                <div class="sem-pedidos-icon">📭</div>
+                <p>Nenhum pedido encontrado</p>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        let todosPedidos = [];
+        let filtroAtual = 'todos';
+
+        async function carregarHistorico() {
+            try {
+                const response = await fetch('/api/historico');
+                todosPedidos = await response.json();
+                
+                atualizarStats();
+                aplicarFiltro();
+                
+            } catch (error) {
+                console.error('Erro ao carregar histórico:', error);
+                const container = document.getElementById('pedidosLista');
+                container.innerHTML = `
+                    <div class="sem-pedidos">
+                        <div class="sem-pedidos-icon">⚠️</div>
+                        <p>Erro ao carregar histórico</p>
+                    </div>
+                `;
+            }
+        }
+
+        function atualizarStats() {
+            const total = todosPedidos.length;
+            const pendentes = todosPedidos.filter(p => !p.entregue).length;
+            const entregues = todosPedidos.filter(p => p.entregue).length;
+            const faturamento = todosPedidos.reduce((sum, pedido) => sum + pedido.total, 0);
+            
+            document.getElementById('totalPedidos').textContent = total;
+            document.getElementById('pedidosPendentes').textContent = pendentes;
+            document.getElementById('pedidosEntregues').textContent = entregues;
+            document.getElementById('faturamentoTotal').textContent = `€${faturamento.toFixed(2)}`;
+        }
+
+        function aplicarFiltro() {
+            let pedidosFiltrados = todosPedidos;
+            
+            if (filtroAtual === 'pendentes') {
+                pedidosFiltrados = todosPedidos.filter(p => !p.entregue);
+            } else if (filtroAtual === 'entregues') {
+                pedidosFiltrados = todosPedidos.filter(p => p.entregue);
+            }
+            
+            renderizarPedidos(pedidosFiltrados);
+        }
+
+        function filtrarPedidos(tipo) {
+            filtroAtual = tipo;
+            
+            // Atualizar botões ativos
+            document.querySelectorAll('.btn-filtro').forEach(btn => {
+                btn.classList.remove('active');
+            });
+            event.target.classList.add('active');
+            
+            aplicarFiltro();
+        }
+
+        function renderizarPedidos(pedidos) {
+            const container = document.getElementById('pedidosLista');
+            
+            if (pedidos.length === 0) {
+                container.innerHTML = `
+                    <div class="sem-pedidos">
+                        <div class="sem-pedidos-icon">📭</div>
+                        <p>Nenhum pedido encontrado</p>
+                    </div>
+                `;
+                return;
+            }
+            
+            container.innerHTML = '';
+            
+            pedidos.forEach(pedido => {
+                const card = document.createElement('div');
+                card.className = `pedido-card ${pedido.entregue ? 'entregue' : ''}`;
+                
+                const data = new Date(pedido.data_hora);
+                const dataFormatada = data.toLocaleString('pt-PT', {
+                    day: '2-digit',
+                    month: '2-digit',
+                    year: 'numeric',
+                    hour: '2-digit',
+                    minute: '2-digit'
+                });
+                
+                let itensHtml = '';
+                pedido.itens.forEach(item => {
+                    itensHtml += `
+                        <div class="pedido-item">
+                            <span>${item.quantidade}x ${item.nome}</span>
+                            <span>€${item.subtotal.toFixed(2)}</span>
+                        </div>
+                    `;
+                });
+                
+                card.innerHTML = `
+                    <div class="pedido-header">
+                        <div class="pedido-info">
+                            <input type="checkbox" 
+                                   class="pedido-checkbox" 
+                                   ${pedido.entregue ? 'checked' : ''}
+                                   onchange="toggleEntregue(${pedido.id}, this.checked)">
+                            <div class="pedido-id">Pedido #${pedido.id}</div>
+                            <div class="pedido-status ${pedido.entregue ? 'status-entregue' : 'status-pendente'}">
+                                ${pedido.entregue ? '✓ Entregue' : '⏳ Pendente'}
+                            </div>
+                        </div>
+                        <div class="pedido-data">📅 ${dataFormatada}</div>
+                    </div>
+                    <div class="pedido-itens">
+                        ${itensHtml}
+                    </div>
+                    <div class="pedido-total">
+                        Total: €${pedido.total.toFixed(2)}
+                    </div>
+                `;
+                
+                container.appendChild(card);
+            });
+        }
+
+        async function toggleEntregue(pedidoId, entregue) {
+            try {
+                let response;
+                if (entregue) {
+                    response = await fetch(`/api/marcar_entregue/${pedidoId}`, {
+                        method: 'PUT',
+                        headers: {
+                            'Content-Type': 'application/json',
+                        }
+                    });
+                } else {
+                    response = await fetch(`/api/marcar_nao_entregue/${pedidoId}`, {
+                        method: 'PUT',
+                        headers: {
+                            'Content-Type': 'application/json',
+                        }
+                    });
+                }
+                
+                if (response.ok) {
+                    // Atualizar o status localmente
+                    const pedido = todosPedidos.find(p => p.id === pedidoId);
+                    if (pedido) {
+                        pedido.entregue = entregue;
+                    }
+                    
+                    // Recarregar a interface
+                    atualizarStats();
+                    aplicarFiltro();
+                    
+                    const mensagem = entregue ? 'Pedido marcado como entregue!' : 'Pedido marcado como pendente!';
+                    mostrarMensagem(mensagem, 'sucesso');
+                } else {
+                    mostrarMensagem('Erro ao atualizar status do pedido', 'erro');
+                    // Recarregar para garantir consistência
+                    await carregarHistorico();
+                }
+            } catch (error) {
+                console.error('Erro:', error);
+                mostrarMensagem('Erro ao atualizar status do pedido', 'erro');
+                await carregarHistorico();
+            }
+        }
+
+        function mostrarMensagem(texto, tipo) {
+            const mensagem = document.createElement('div');
+            mensagem.className = `mensagem mensagem-${tipo}`;
+            mensagem.textContent = texto;
+            document.body.appendChild(mensagem);
+            
+            setTimeout(() => {
+                mensagem.remove();
+            }, 3000);
+        }
+        
+        // Carregar histórico ao iniciar
+        carregarHistorico();
+        
+        // Atualizar a cada 30 segundos
+        setInterval(carregarHistorico, 30000);
+    </script>
+</body>
+</html>
