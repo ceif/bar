@@ -1,0 +1,454 @@
+<!DOCTYPE html>
+<html lang="pt">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Administração - Café</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            min-height: 100vh;
+            padding: 20px;
+        }
+
+        .container {
+            max-width: 1000px;
+            margin: 0 auto;
+            background: white;
+            border-radius: 20px;
+            box-shadow: 0 20px 60px rgba(0,0,0,0.3);
+            overflow: hidden;
+        }
+
+        .header {
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            color: white;
+            padding: 30px;
+            text-align: center;
+            position: relative;
+        }
+
+        .header h1 {
+            font-size: 2em;
+            margin-bottom: 10px;
+        }
+
+        .header p {
+            opacity: 0.9;
+        }
+
+        .btn-voltar {
+            position: absolute;
+            top: 20px;
+            left: 20px;
+            background: rgba(255,255,255,0.2);
+            color: white;
+            border: none;
+            padding: 8px 16px;
+            border-radius: 8px;
+            cursor: pointer;
+            font-size: 14px;
+            transition: all 0.3s;
+        }
+
+        .btn-voltar:hover {
+            background: rgba(255,255,255,0.3);
+            transform: translateY(-2px);
+        }
+
+        .form-produto {
+            background: #f8f9fa;
+            padding: 20px;
+            border-bottom: 1px solid #e0e0e0;
+        }
+
+        .form-group {
+            display: flex;
+            gap: 10px;
+            margin-bottom: 15px;
+        }
+
+        .form-group input {
+            flex: 1;
+            padding: 12px;
+            border: 1px solid #ddd;
+            border-radius: 8px;
+            font-size: 1em;
+        }
+
+        .btn-primary {
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            color: white;
+            border: none;
+            padding: 12px 24px;
+            border-radius: 8px;
+            cursor: pointer;
+            font-weight: 600;
+            transition: all 0.3s;
+        }
+
+        .btn-primary:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 5px 15px rgba(0,0,0,0.2);
+        }
+
+        .produtos-table {
+            width: 100%;
+            border-collapse: collapse;
+        }
+
+        .produtos-table th,
+        .produtos-table td {
+            padding: 15px;
+            text-align: left;
+            border-bottom: 1px solid #e0e0e0;
+        }
+
+        .produtos-table th {
+            background: #f8f9fa;
+            font-weight: 600;
+            color: #333;
+        }
+
+        .produtos-table tr:hover {
+            background: #f8f9fa;
+        }
+
+        .btn-editar {
+            background: #ffa500;
+            color: white;
+            border: none;
+            padding: 6px 12px;
+            border-radius: 6px;
+            cursor: pointer;
+            margin-right: 5px;
+            transition: all 0.3s;
+        }
+
+        .btn-editar:hover {
+            background: #ff8c00;
+        }
+
+        .btn-deletar {
+            background: #ff6b6b;
+            color: white;
+            border: none;
+            padding: 6px 12px;
+            border-radius: 6px;
+            cursor: pointer;
+            transition: all 0.3s;
+        }
+
+        .btn-deletar:hover {
+            background: #ff5252;
+        }
+
+        .modal {
+            display: none;
+            position: fixed;
+            z-index: 1000;
+            left: 0;
+            top: 0;
+            width: 100%;
+            height: 100%;
+            background-color: rgba(0,0,0,0.5);
+        }
+
+        .modal-content {
+            background-color: white;
+            margin: 10% auto;
+            padding: 0;
+            border-radius: 20px;
+            width: 90%;
+            max-width: 400px;
+            animation: slideDown 0.3s;
+        }
+
+        .modal-header {
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            color: white;
+            padding: 20px;
+            border-radius: 20px 20px 0 0;
+        }
+
+        .modal-body {
+            padding: 20px;
+        }
+
+        .modal-footer {
+            padding: 20px;
+            display: flex;
+            gap: 10px;
+            justify-content: flex-end;
+            border-top: 1px solid #e0e0e0;
+        }
+
+        .mensagem {
+            position: fixed;
+            bottom: 20px;
+            right: 20px;
+            padding: 12px 20px;
+            border-radius: 10px;
+            color: white;
+            font-weight: 500;
+            animation: slideIn 0.3s ease-out;
+            z-index: 1001;
+        }
+
+        .mensagem-sucesso {
+            background: #51cf66;
+        }
+
+        .mensagem-erro {
+            background: #ff6b6b;
+        }
+
+        @keyframes slideDown {
+            from {
+                transform: translateY(-50px);
+                opacity: 0;
+            }
+            to {
+                transform: translateY(0);
+                opacity: 1;
+            }
+        }
+
+        @keyframes slideIn {
+            from {
+                transform: translateX(100%);
+                opacity: 0;
+            }
+            to {
+                transform: translateX(0);
+                opacity: 1;
+            }
+        }
+
+        @media (max-width: 768px) {
+            .form-group {
+                flex-direction: column;
+            }
+            
+            .produtos-table {
+                font-size: 0.9em;
+            }
+            
+            .produtos-table th,
+            .produtos-table td {
+                padding: 10px;
+            }
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <div class="header">
+            <button class="btn-voltar" onclick="window.location.href='/'">
+                ← Voltar
+            </button>
+            <h1>⚙️ Administração</h1>
+            <p>Gerenciar produtos e preços</p>
+        </div>
+
+        <div class="form-produto">
+            <h3 style="margin-bottom: 15px;">➕ Adicionar Novo Produto</h3>
+            <div class="form-group">
+                <input type="text" id="novoNome" placeholder="Nome do produto" autocomplete="off">
+                <input type="number" id="novoPreco" placeholder="Preço (€)" step="0.01" autocomplete="off">
+                <button class="btn-primary" onclick="adicionarProduto()">Adicionar</button>
+            </div>
+        </div>
+
+        <div style="overflow-x: auto;">
+            <table class="produtos-table">
+                <thead>
+                    <tr>
+                        <th>ID</th>
+                        <th>Produto</th>
+                        <th>Preço (€)</th>
+                        <th>Ações</th>
+                    </tr>
+                </thead>
+                <tbody id="produtosTableBody">
+                    <!-- Produtos serão carregados aqui -->
+                </tbody>
+            </table>
+        </div>
+    </div>
+
+    <!-- Modal de Edição -->
+    <div id="editModal" class="modal">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h2>✏️ Editar Produto</h2>
+            </div>
+            <div class="modal-body">
+                <div class="form-group">
+                    <input type="text" id="editNome" placeholder="Nome do produto">
+                    <input type="number" id="editPreco" placeholder="Preço (€)" step="0.01">
+                </div>
+                <input type="hidden" id="editId">
+            </div>
+            <div class="modal-footer">
+                <button class="btn-primary" onclick="salvarEdicao()">Salvar</button>
+                <button class="btn-deletar" onclick="fecharModal()">Cancelar</button>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        let produtos = [];
+
+        async function carregarProdutos() {
+            try {
+                const response = await fetch('/api/produtos');
+                produtos = await response.json();
+                renderizarProdutos();
+            } catch (error) {
+                mostrarMensagem('Erro ao carregar produtos', 'erro');
+            }
+        }
+
+        function renderizarProdutos() {
+            const tbody = document.getElementById('produtosTableBody');
+            tbody.innerHTML = '';
+            
+            produtos.forEach(produto => {
+                const row = tbody.insertRow();
+                row.innerHTML = `
+                    <td>${produto.id}</td>
+                    <td>${produto.nome}</td>
+                    <td>${produto.preco.toFixed(2)}</td>
+                    <td>
+                        <button class="btn-editar" onclick="abrirModalEditar(${produto.id})">✏️ Editar</button>
+                        <button class="btn-deletar" onclick="deletarProduto(${produto.id})">🗑️ Deletar</button>
+                    </td>
+                `;
+            });
+        }
+
+        async function adicionarProduto() {
+            const nome = document.getElementById('novoNome').value.trim();
+            const preco = parseFloat(document.getElementById('novoPreco').value);
+            
+            if (!nome || isNaN(preco) || preco <= 0) {
+                mostrarMensagem('Preencha todos os campos corretamente', 'erro');
+                return;
+            }
+            
+            try {
+                const response = await fetch('/api/produto', {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json',
+                    },
+                    body: JSON.stringify({ nome, preco })
+                });
+                
+                if (response.ok) {
+                    mostrarMensagem('Produto adicionado com sucesso!', 'sucesso');
+                    document.getElementById('novoNome').value = '';
+                    document.getElementById('novoPreco').value = '';
+                    await carregarProdutos();
+                } else {
+                    mostrarMensagem('Erro ao adicionar produto', 'erro');
+                }
+            } catch (error) {
+                mostrarMensagem('Erro ao adicionar produto', 'erro');
+            }
+        }
+
+        function abrirModalEditar(id) {
+            const produto = produtos.find(p => p.id === id);
+            if (produto) {
+                document.getElementById('editId').value = produto.id;
+                document.getElementById('editNome').value = produto.nome;
+                document.getElementById('editPreco').value = produto.preco;
+                document.getElementById('editModal').style.display = 'block';
+            }
+        }
+
+        async function salvarEdicao() {
+            const id = document.getElementById('editId').value;
+            const nome = document.getElementById('editNome').value.trim();
+            const preco = parseFloat(document.getElementById('editPreco').value);
+            
+            if (!nome || isNaN(preco) || preco <= 0) {
+                mostrarMensagem('Preencha todos os campos corretamente', 'erro');
+                return;
+            }
+            
+            try {
+                const response = await fetch(`/api/produto/${id}`, {
+                    method: 'PUT',
+                    headers: {
+                        'Content-Type': 'application/json',
+                    },
+                    body: JSON.stringify({ nome, preco })
+                });
+                
+                if (response.ok) {
+                    mostrarMensagem('Produto atualizado com sucesso!', 'sucesso');
+                    fecharModal();
+                    await carregarProdutos();
+                } else {
+                    mostrarMensagem('Erro ao atualizar produto', 'erro');
+                }
+            } catch (error) {
+                mostrarMensagem('Erro ao atualizar produto', 'erro');
+            }
+        }
+
+        async function deletarProduto(id) {
+            if (!confirm('Tem certeza que deseja deletar este produto?')) return;
+            
+            try {
+                const response = await fetch(`/api/produto/${id}`, {
+                    method: 'DELETE'
+                });
+                
+                if (response.ok) {
+                    mostrarMensagem('Produto deletado com sucesso!', 'sucesso');
+                    await carregarProdutos();
+                } else {
+                    mostrarMensagem('Erro ao deletar produto', 'erro');
+                }
+            } catch (error) {
+                mostrarMensagem('Erro ao deletar produto', 'erro');
+            }
+        }
+
+        function fecharModal() {
+            document.getElementById('editModal').style.display = 'none';
+        }
+
+        function mostrarMensagem(texto, tipo) {
+            const mensagem = document.createElement('div');
+            mensagem.className = `mensagem mensagem-${tipo}`;
+            mensagem.textContent = texto;
+            document.body.appendChild(mensagem);
+            
+            setTimeout(() => {
+                mensagem.remove();
+            }, 3000);
+        }
+
+        window.onclick = function(event) {
+            const modal = document.getElementById('editModal');
+            if (event.target === modal) {
+                fecharModal();
+            }
+        }
+
+        carregarProdutos();
+    </script>
+</body>
+</html>
