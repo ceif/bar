@@ -1,0 +1,671 @@
+<!DOCTYPE html>
+<html lang="pt">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title></title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            min-height: 100vh;
+            padding: 20px;
+        }
+
+        .container {
+            max-width: 800px;
+            margin: 0 auto;
+            background: white;
+            border-radius: 20px;
+            box-shadow: 0 20px 60px rgba(0,0,0,0.3);
+            overflow: hidden;
+        }
+
+        .header {
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            color: white;
+            padding: 30px;
+            text-align: center;
+            position: relative;
+        }
+
+        .header h1 {
+            font-size: 2em;
+            margin-bottom: 10px;
+        }
+
+        .header p {
+            opacity: 0.9;
+        }
+
+        .btn-topo {
+            position: absolute;
+            top: 20px;
+            background: rgba(255,255,255,0.2);
+            color: white;
+            border: none;
+            padding: 8px 16px;
+            border-radius: 8px;
+            cursor: pointer;
+            font-size: 14px;
+            transition: all 0.3s;
+        }
+
+        .btn-topo:hover {
+            background: rgba(255,255,255,0.3);
+            transform: translateY(-2px);
+        }
+
+        .btn-historico {
+            right: 20px;
+        }
+
+        .btn-admin {
+            left: 20px;
+        }
+
+        .pedido-id-card {
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            color: white;
+            padding: 15px;
+            text-align: center;
+            border-bottom: 1px solid rgba(255,255,255,0.2);
+        }
+
+        .pedido-id-label {
+            font-size: 0.9em;
+            opacity: 0.9;
+            letter-spacing: 1px;
+        }
+
+        .pedido-id-value {
+            font-size: 2em;
+            font-weight: bold;
+            margin-top: 5px;
+            font-family: 'Courier New', monospace;
+            letter-spacing: 2px;
+        }
+
+        .pedido-id-note {
+            font-size: 0.8em;
+            margin-top: 5px;
+            opacity: 0.8;
+        }
+
+        .produtos-lista {
+            padding: 20px;
+        }
+
+        .produto-item {
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            padding: 15px;
+            border-bottom: 1px solid #e0e0e0;
+            transition: background 0.3s;
+        }
+
+        .produto-item:hover {
+            background: #f8f9fa;
+        }
+
+        .produto-info {
+            flex: 2;
+        }
+
+        .produto-nome {
+            font-size: 1.1em;
+            font-weight: 600;
+            color: #333;
+        }
+
+        .produto-preco {
+            color: #666;
+            font-size: 0.9em;
+            margin-top: 5px;
+        }
+
+        .produto-preco::before {
+            content: '€ ';
+        }
+
+        .controles {
+            display: flex;
+            align-items: center;
+            gap: 12px;
+        }
+
+        .btn {
+            width: 40px;
+            height: 40px;
+            border: none;
+            border-radius: 10px;
+            font-size: 1.2em;
+            font-weight: bold;
+            cursor: pointer;
+            transition: all 0.3s;
+            background: #f0f0f0;
+            color: #333;
+        }
+
+        .btn:hover {
+            transform: scale(1.05);
+        }
+
+        .btn:active {
+            transform: scale(0.95);
+        }
+
+        .btn-menos {
+            background: #ff6b6b;
+            color: white;
+        }
+
+        .btn-menos:hover {
+            background: #ff5252;
+        }
+
+        .btn-mais {
+            background: #51cf66;
+            color: white;
+        }
+
+        .btn-mais:hover {
+            background: #40c057;
+        }
+
+        .quantidade {
+            font-size: 1.2em;
+            font-weight: bold;
+            min-width: 40px;
+            text-align: center;
+            color: #333;
+        }
+
+        .total {
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            color: white;
+            padding: 25px;
+            text-align: center;
+            margin-top: 20px;
+        }
+
+        .total-label {
+            font-size: 1.2em;
+            opacity: 0.9;
+        }
+
+        .total-valor {
+            font-size: 2.5em;
+            font-weight: bold;
+            margin-top: 10px;
+        }
+
+        .total-valor::before {
+            content: '€ ';
+        }
+
+        .acoes {
+            display: flex;
+            gap: 15px;
+            justify-content: center;
+            padding: 20px;
+            background: #f8f9fa;
+        }
+
+        .btn-acao {
+            padding: 12px 24px;
+            border: none;
+            border-radius: 10px;
+            font-size: 1em;
+            font-weight: 600;
+            cursor: pointer;
+            transition: all 0.3s;
+        }
+
+        .btn-limpar {
+            background: #ff6b6b;
+            color: white;
+        }
+
+        .btn-limpar:hover {
+            background: #ff5252;
+        }
+
+        .btn-finalizar {
+            background: #51cf66;
+            color: white;
+        }
+
+        .btn-finalizar:hover {
+            background: #40c057;
+        }
+
+        .modal {
+            display: none;
+            position: fixed;
+            z-index: 1000;
+            left: 0;
+            top: 0;
+            width: 100%;
+            height: 100%;
+            background-color: rgba(0,0,0,0.5);
+            animation: fadeIn 0.3s;
+        }
+
+        .modal-content {
+            background-color: white;
+            margin: 5% auto;
+            padding: 0;
+            border-radius: 20px;
+            width: 90%;
+            max-width: 500px;
+            box-shadow: 0 20px 60px rgba(0,0,0,0.3);
+            animation: slideDown 0.3s;
+        }
+
+        .modal-header {
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            color: white;
+            padding: 20px;
+            border-radius: 20px 20px 0 0;
+        }
+
+        .modal-header h2 {
+            font-size: 1.5em;
+        }
+
+        .modal-body {
+            padding: 20px;
+            max-height: 400px;
+            overflow-y: auto;
+        }
+
+        .resumo-item {
+            display: flex;
+            justify-content: space-between;
+            padding: 10px 0;
+            border-bottom: 1px solid #e0e0e0;
+        }
+
+        .resumo-total {
+            margin-top: 15px;
+            padding-top: 15px;
+            border-top: 2px solid #667eea;
+            font-weight: bold;
+            font-size: 1.2em;
+            text-align: right;
+        }
+
+        .modal-footer {
+            padding: 20px;
+            display: flex;
+            gap: 10px;
+            justify-content: flex-end;
+            border-top: 1px solid #e0e0e0;
+        }
+
+        .btn-modal {
+            padding: 10px 20px;
+            border: none;
+            border-radius: 8px;
+            cursor: pointer;
+            font-weight: 600;
+            transition: all 0.3s;
+        }
+
+        .btn-cancelar {
+            background: #ff6b6b;
+            color: white;
+        }
+
+        .btn-cancelar:hover {
+            background: #ff5252;
+        }
+
+        .btn-gravar {
+            background: #51cf66;
+            color: white;
+        }
+
+        .btn-gravar:hover {
+            background: #40c057;
+        }
+
+        .mensagem {
+            position: fixed;
+            bottom: 20px;
+            right: 20px;
+            padding: 12px 20px;
+            border-radius: 10px;
+            color: white;
+            font-weight: 500;
+            animation: slideIn 0.3s ease-out;
+            z-index: 1001;
+        }
+
+        .mensagem-sucesso {
+            background: #51cf66;
+        }
+
+        .mensagem-erro {
+            background: #ff6b6b;
+        }
+
+        @keyframes fadeIn {
+            from { opacity: 0; }
+            to { opacity: 1; }
+        }
+
+        @keyframes slideDown {
+            from {
+                transform: translateY(-50px);
+                opacity: 0;
+            }
+            to {
+                transform: translateY(0);
+                opacity: 1;
+            }
+        }
+
+        @keyframes slideIn {
+            from {
+                transform: translateX(100%);
+                opacity: 0;
+            }
+            to {
+                transform: translateX(0);
+                opacity: 1;
+            }
+        }
+
+        @media (max-width: 600px) {
+            .produto-item {
+                flex-direction: column;
+                gap: 10px;
+            }
+            
+            .produto-info {
+                width: 100%;
+            }
+            
+            .controles {
+                width: 100%;
+                justify-content: center;
+            }
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <div class="header">
+            <button class="btn-topo btn-admin" onclick="window.location.href='/admin'">
+                ⚙️ Admin
+            </button>
+            <button class="btn-topo btn-historico" onclick="window.location.href='/historico'">
+                📋 Histórico
+            </button>
+            <h1>Menu Festas S.João</h1>
+        </div>
+
+        <div class="pedido-id-card">
+            <div class="pedido-id-label">NÚMERO DO PEDIDO</div>
+            <div class="pedido-id-value" id="pedidoId">{{ proximo_pedido_id }}</div>
+            <div class="pedido-id-note">⚠️ Anotar este número no talão</div>
+        </div>
+
+        <div class="produtos-lista" id="produtosLista">
+            <!-- Produtos serão carregados aqui via JavaScript -->
+        </div>
+
+        <div class="total">
+            <div class="total-label">Total do Pedido</div>
+            <div class="total-valor" id="totalValor">0.00</div>
+        </div>
+
+        <div class="acoes">
+            <button class="btn-acao btn-limpar" onclick="limparPedido()">🗑️ Limpar Pedido</button>
+            <button class="btn-acao btn-finalizar" onclick="mostrarResumo()">✅ Finalizar Pedido</button>
+        </div>
+    </div>
+
+    <div id="resumoModal" class="modal">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h2>📋 Resumo do Pedido #<span id="resumoPedidoId">{{ proximo_pedido_id }}</span></h2>
+            </div>
+            <div class="modal-body" id="resumoBody">
+                <!-- Resumo será inserido aqui -->
+            </div>
+            <div class="modal-footer">
+                <button class="btn-modal btn-cancelar" onclick="cancelarPedido()">Cancelar Pedido</button>
+                <button class="btn-modal btn-gravar" onclick="gravarPedido()">Gravar Pedido</button>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        let produtos = [];
+        let resumoAtual = [];
+        let proximoPedidoId = {{ proximo_pedido_id }};
+
+        async function carregarDados() {
+            try {
+                const response = await fetch('/api/pedidos');
+                produtos = await response.json();
+                renderizarProdutos();
+                calcularTotal();
+            } catch (error) {
+                mostrarMensagem('Erro ao carregar dados', 'erro');
+            }
+        }
+
+        function renderizarProdutos() {
+            const container = document.getElementById('produtosLista');
+            container.innerHTML = '';
+            
+            produtos.forEach(produto => {
+                const item = document.createElement('div');
+                item.className = 'produto-item';
+                item.innerHTML = `
+                    <div class="produto-info">
+                        <div class="produto-nome">${produto.nome}</div>
+                        <div class="produto-preco">${produto.preco.toFixed(2)}</div>
+                    </div>
+                    <div class="controles">
+                        <button class="btn btn-menos" onclick="alterarQuantidade(${produto.id}, -1)">−</button>
+                        <span class="quantidade" id="qtd-${produto.id}">${produto.quantidade}</span>
+                        <button class="btn btn-mais" onclick="alterarQuantidade(${produto.id}, 1)">+</button>
+                    </div>
+                `;
+                container.appendChild(item);
+            });
+        }
+
+        async function alterarQuantidade(produtoId, delta) {
+            const produto = produtos.find(p => p.id === produtoId);
+            if (!produto) return;
+            
+            const novaQuantidade = Math.max(0, produto.quantidade + delta);
+            
+            try {
+                const response = await fetch('/api/pedido', {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json',
+                    },
+                    body: JSON.stringify({
+                        produto_id: produtoId,
+                        quantidade: novaQuantidade
+                    })
+                });
+                
+                if (response.ok) {
+                    produto.quantidade = novaQuantidade;
+                    const qtdElement = document.getElementById(`qtd-${produtoId}`);
+                    if (qtdElement) {
+                        qtdElement.textContent = novaQuantidade;
+                    }
+                    calcularTotal();
+                    
+                    if (delta > 0) {
+                        mostrarMensagem(`Adicionado ${produto.nome}`, 'sucesso');
+                    } else if (delta < 0 && novaQuantidade === 0) {
+                        mostrarMensagem(`Removido ${produto.nome}`, 'sucesso');
+                    }
+                }
+            } catch (error) {
+                mostrarMensagem('Erro ao atualizar pedido', 'erro');
+            }
+        }
+
+        function calcularTotal() {
+            let total = 0;
+            produtos.forEach(produto => {
+                total += produto.quantidade * produto.preco;
+            });
+            
+            const totalElement = document.getElementById('totalValor');
+            totalElement.textContent = total.toFixed(2);
+        }
+
+        function mostrarResumo() {
+            const itens = produtos.filter(p => p.quantidade > 0);
+            
+            if (itens.length === 0) {
+                mostrarMensagem('Nenhum item no pedido para finalizar', 'erro');
+                return;
+            }
+            
+            resumoAtual = itens.map(item => ({
+                nome: item.nome,
+                quantidade: item.quantidade,
+                preco: item.preco,
+                subtotal: item.quantidade * item.preco
+            }));
+            
+            const total = resumoAtual.reduce((sum, item) => sum + item.subtotal, 0);
+            
+            const modalBody = document.getElementById('resumoBody');
+            modalBody.innerHTML = '';
+            
+            resumoAtual.forEach(item => {
+                const div = document.createElement('div');
+                div.className = 'resumo-item';
+                div.innerHTML = `
+                    <span>${item.quantidade}x ${item.nome}</span>
+                    <span>€${item.subtotal.toFixed(2)}</span>
+                `;
+                modalBody.appendChild(div);
+            });
+            
+            const totalDiv = document.createElement('div');
+            totalDiv.className = 'resumo-total';
+            totalDiv.innerHTML = `Total: €${total.toFixed(2)}`;
+            modalBody.appendChild(totalDiv);
+            
+            document.getElementById('resumoModal').style.display = 'block';
+        }
+
+        async function cancelarPedido() {
+            document.getElementById('resumoModal').style.display = 'none';
+            
+            try {
+                await fetch('/api/cancelar_pedido', {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json',
+                    }
+                });
+                
+                await carregarDados();
+                mostrarMensagem('Pedido cancelado!', 'sucesso');
+            } catch (error) {
+                mostrarMensagem('Erro ao cancelar pedido', 'erro');
+            }
+        }
+
+        async function gravarPedido() {
+            const itens = resumoAtual.map(item => ({
+                nome: item.nome,
+                quantidade: item.quantidade,
+                preco: item.preco,
+                subtotal: item.subtotal
+            }));
+            
+            const total = itens.reduce((sum, item) => sum + item.subtotal, 0);
+            
+            try {
+                const response = await fetch('/api/gravar_pedido', {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json',
+                    },
+                    body: JSON.stringify({
+                        itens: itens,
+                        total: total
+                    })
+                });
+                
+                if (response.ok) {
+                    const data = await response.json();
+                    document.getElementById('resumoModal').style.display = 'none';
+                    await carregarDados();
+                    mostrarMensagem(`Pedido #${data.pedido_id} gravado com sucesso!`, 'sucesso');
+                    
+                    // Atualizar o número do pedido na página
+                    setTimeout(() => {
+                        window.location.reload();
+                    }, 1500);
+                }
+            } catch (error) {
+                mostrarMensagem('Erro ao gravar pedido', 'erro');
+            }
+        }
+
+        async function limparPedido() {
+            if (!confirm('Tem certeza que deseja limpar todo o pedido?')) return;
+            
+            try {
+                await fetch('/api/cancelar_pedido', {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json',
+                    }
+                });
+                
+                await carregarDados();
+                mostrarMensagem('Pedido limpo com sucesso!', 'sucesso');
+            } catch (error) {
+                mostrarMensagem('Erro ao limpar pedido', 'erro');
+            }
+        }
+
+        window.onclick = function(event) {
+            const modal = document.getElementById('resumoModal');
+            if (event.target === modal) {
+                modal.style.display = 'none';
+            }
+        }
+
+        function mostrarMensagem(texto, tipo) {
+            const mensagem = document.createElement('div');
+            mensagem.className = `mensagem mensagem-${tipo}`;
+            mensagem.textContent = texto;
+            document.body.appendChild(mensagem);
+            
+            setTimeout(() => {
+                mensagem.remove();
+            }, 3000);
+        }
+
+        carregarDados();
+    </script>
+</body>
+</html>
