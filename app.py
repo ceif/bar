@@ -1,123 +1,103 @@
 from flask import Flask, render_template, request, jsonify
-import sqlite3
+from flask_sqlalchemy import SQLAlchemy
 from datetime import datetime
 import json
-import time
-from contextlib import contextmanager
+import os
 
 app = Flask(__name__)
 
-# Context manager para gerenciar conexões com o banco de dados
-@contextmanager
-def get_db():
-    """Gerencia a conexão com o banco de dados"""
-    conn = None
-    try:
-        conn = sqlite3.connect('produtos.db', timeout=20)
-        conn.row_factory = sqlite3.Row
-        yield conn
-        conn.commit()
-    except Exception as e:
-        if conn:
-            conn.rollback()
-        raise e
-    finally:
-        if conn:
-            conn.close()
+# Configurar PostgreSQL a partir da variável de ambiente
+# O Vercel irá definir esta variável automaticamente ou pode configurar manualmente
+app.config['SQLALCHEMY_DATABASE_URI'] = os.environ.get('DATABASE_URL', '').replace('postgres://', 'postgresql://')
+app.config['SQLALCHEMY_TRACK_MODIFICATIONS'] = False
+app.config['SECRET_KEY'] = os.environ.get('SECRET_KEY', 'dev-key-para-teste')
+
+db = SQLAlchemy(app)
+
+# ==================== MODELOS ====================
+
+class Produto(db.Model):
+    __tablename__ = 'produtos'
+    id = db.Column(db.Integer, primary_key=True)
+    nome = db.Column(db.String(100), nullable=False)
+    preco = db.Column(db.Float, nullable=False)
+
+class PedidoAtivo(db.Model):
+    __tablename__ = 'pedidos_ativos'
+    id = db.Column(db.Integer, primary_key=True)
+    produto_id = db.Column(db.Integer, db.ForeignKey('produtos.id'))
+    quantidade = db.Column(db.Integer, nullable=False)
+    data_hora = db.Column(db.DateTime, default=datetime.utcnow)
+
+class PedidoGravado(db.Model):
+    __tablename__ = 'pedidos_gravados'
+    id = db.Column(db.Integer, primary_key=True)
+    pedido_json = db.Column(db.Text, nullable=False)
+    total = db.Column(db.Float, nullable=False)
+    entregue = db.Column(db.Integer, default=0)
+    data_hora = db.Column(db.DateTime, default=datetime.utcnow)
+
+class Config(db.Model):
+    __tablename__ = 'config'
+    chave = db.Column(db.String(50), primary_key=True)
+    valor = db.Column(db.String(255), nullable=False)
+
+# ==================== FUNÇÕES AUXILIARES ====================
 
 def init_db():
-    """Inicializa o banco de dados SQLite"""
-    with get_db() as conn:
-        cursor = conn.cursor()
-        
-        # Tabela de produtos
-        cursor.execute('''
-            CREATE TABLE IF NOT EXISTS produtos (
-                id INTEGER PRIMARY KEY AUTOINCREMENT,
-                nome TEXT NOT NULL,
-                preco REAL NOT NULL
-            )
-        ''')
-        
-        # Tabela de pedidos ativos (carrinho atual)
-        cursor.execute('''
-            CREATE TABLE IF NOT EXISTS pedidos_ativos (
-                id INTEGER PRIMARY KEY AUTOINCREMENT,
-                produto_id INTEGER,
-                quantidade INTEGER NOT NULL,
-                data_hora TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
-                FOREIGN KEY (produto_id) REFERENCES produtos (id)
-            )
-        ''')
-        
-        # Tabela de pedidos gravados (histórico) - com campo entregue
-        cursor.execute('''
-            CREATE TABLE IF NOT EXISTS pedidos_gravados (
-                id INTEGER PRIMARY KEY,
-                pedido_json TEXT NOT NULL,
-                total REAL NOT NULL,
-                entregue INTEGER DEFAULT 0,
-                data_hora TIMESTAMP DEFAULT CURRENT_TIMESTAMP
-            )
-        ''')
-        
-        # Tabela para controle do próximo ID do pedido
-        cursor.execute('''
-            CREATE TABLE IF NOT EXISTS config (
-                chave TEXT PRIMARY KEY,
-                valor TEXT NOT NULL
-            )
-        ''')
+    """Inicializa a base de dados com dados padrão"""
+    with app.app_context():
+        db.create_all()
         
         # Inserir próximo ID do pedido se não existir
-        cursor.execute('SELECT COUNT(*) FROM config WHERE chave = "proximo_pedido_id"')
-        if cursor.fetchone()[0] == 0:
-            cursor.execute('INSERT INTO config (chave, valor) VALUES ("proximo_pedido_id", "1")')
+        if not Config.query.filter_by(chave='proximo_pedido_id').first():
+            config = Config(chave='proximo_pedido_id', valor='1')
+            db.session.add(config)
         
         # Inserir produtos padrão se não existirem
-        cursor.execute('SELECT COUNT(*) FROM produtos')
-        if cursor.fetchone()[0] == 0:
+        if Produto.query.count() == 0:
             produtos_padrao = [
-                ('Água', 0.50),
-                ('Água com Gás', 1.20),                
-                ('Café', 0.50),
-                ('7-UP', 1.50),
-                ('Ice Tea', 1.50),
-                ('Coca-Cola', 1.50),
-                ('Cerveja Mini', 1.20),
-                ('Vinho ao Copo', 0.80), 
-                ('Sangria', 1.50), 
-                ('Fatia de Bolo', 1.00),                
-                ('Caldo Verde', 2.00),
-                ('Fêveras no Pão', 2.50),
-                ('Rojões no Pão', 1.50),
-                ('Pão com Chouriço', 1.50),
-                ('Cachorro', 2.00),     
-                ('Pizza (fatia)', 1.50),
-                ('Bola (fatia)', 1.50),
-                ('Dobradinha', 2.50),
-                ('Moelas', 2.00),
-                ('Rojões das Tripas (unidade)', 0.50),                
-                ('Batata Frita (prato)', 0.80),
-                ('Azeitonas', 0.50),
-                ('Tremoços', 0.50),
-                ('Amendoins', 0.50)              
+
+				Produto(nome='Água', preco=0.50),
+                Produto(nome='Água com Gás', preco=1.20),                
+                Produto(nome='Café', preco=0.50),
+                Produto(nome='7-UP', preco=1.50),
+                Produto(nome='Ice Tea', preco=1.50),
+                Produto(nome='Coca-Cola', preco=1.50),
+                Produto(nome='Cerveja Mini', preco=1.20),
+                Produto(nome='Vinho ao Copo', preco=0.80), 
+                Produto(nome='Sangria', preco=1.50), 
+                Produto(nome='Fatia de Bolo', preco=1.00),                
+                Produto(nome='Caldo Verde', preco=2.00),
+                Produto(nome='Fêveras no Pão', preco=2.50),
+                Produto(nome='Rojões no Pão', preco=1.50),
+                Produto(nome='Pão com Chouriço', preco=1.50),
+                Produto(nome='Cachorro', preco=2.00),     
+                Produto(nome='Pizza Produto(nome=fatia)', preco=1.50),
+                Produto(nome='Bola Produto(nome=fatia)', preco=1.50),
+                Produto(nome='Dobradinha', preco=2.50),
+                Produto(nome='Moelas', preco=2.00),
+                Produto(nome='Rojões das Tripas Produto(nome=unidade)', preco=0.50),                
+                Produto(nome='Batata Frita Produto(nome=prato)', preco=0.80),
+                Produto(nome='Azeitonas', preco=0.50),
+                Produto(nome='Tremoços', preco=0.50),
+                Produto(nome='Amendoins', preco=0.50) 
             ]
-            cursor.executemany('INSERT INTO produtos (nome, preco) VALUES (?, ?)', produtos_padrao)
+            db.session.add_all(produtos_padrao)
+        
+        db.session.commit()
 
 def get_proximo_pedido_id():
-    """Retorna o próximo ID do pedido"""
-    with get_db() as conn:
-        cursor = conn.cursor()
-        cursor.execute('SELECT valor FROM config WHERE chave = "proximo_pedido_id"')
-        resultado = cursor.fetchone()
-        return int(resultado[0]) if resultado else 1
+    config = Config.query.filter_by(chave='proximo_pedido_id').first()
+    return int(config.valor) if config else 1
 
 def incrementar_proximo_pedido_id():
-    """Incrementa o próximo ID do pedido"""
-    with get_db() as conn:
-        cursor = conn.cursor()
-        cursor.execute('UPDATE config SET valor = CAST(valor AS INTEGER) + 1 WHERE chave = "proximo_pedido_id"')
+    config = Config.query.filter_by(chave='proximo_pedido_id').first()
+    if config:
+        config.valor = str(int(config.valor) + 1)
+        db.session.commit()
+
+# ==================== ROTAS ====================
 
 @app.route('/')
 def index():
@@ -134,16 +114,11 @@ def historico():
 
 @app.route('/api/produtos', methods=['GET'])
 def get_produtos():
-    """Retorna todos os produtos"""
-    with get_db() as conn:
-        cursor = conn.cursor()
-        cursor.execute('SELECT id, nome, preco FROM produtos ORDER BY id')
-        produtos = cursor.fetchall()
-        return jsonify([{'id': p[0], 'nome': p[1], 'preco': p[2]} for p in produtos])
+    produtos = Produto.query.order_by(Produto.id).all()
+    return jsonify([{'id': p.id, 'nome': p.nome, 'preco': p.preco} for p in produtos])
 
 @app.route('/api/produto', methods=['POST'])
 def adicionar_produto():
-    """Adiciona um novo produto"""
     data = request.json
     nome = data.get('nome')
     preco = data.get('preco')
@@ -151,185 +126,143 @@ def adicionar_produto():
     if not nome or preco is None:
         return jsonify({'error': 'Nome e preço são obrigatórios'}), 400
     
-    with get_db() as conn:
-        cursor = conn.cursor()
-        cursor.execute('INSERT INTO produtos (nome, preco) VALUES (?, ?)', (nome, preco))
-        novo_id = cursor.lastrowid
+    novo_produto = Produto(nome=nome, preco=preco)
+    db.session.add(novo_produto)
+    db.session.commit()
     
-    return jsonify({'success': True, 'id': novo_id})
+    return jsonify({'success': True, 'id': novo_produto.id})
 
 @app.route('/api/produto/<int:produto_id>', methods=['PUT'])
 def atualizar_produto(produto_id):
-    """Atualiza um produto existente"""
     data = request.json
-    nome = data.get('nome')
-    preco = data.get('preco')
+    produto = Produto.query.get(produto_id)
     
-    if not nome or preco is None:
-        return jsonify({'error': 'Nome e preço são obrigatórios'}), 400
+    if not produto:
+        return jsonify({'error': 'Produto não encontrado'}), 404
     
-    with get_db() as conn:
-        cursor = conn.cursor()
-        cursor.execute('UPDATE produtos SET nome = ?, preco = ? WHERE id = ?', (nome, preco, produto_id))
+    produto.nome = data.get('nome')
+    produto.preco = data.get('preco')
+    db.session.commit()
     
     return jsonify({'success': True})
 
 @app.route('/api/produto/<int:produto_id>', methods=['DELETE'])
 def deletar_produto(produto_id):
-    """Remove um produto"""
-    with get_db() as conn:
-        cursor = conn.cursor()
-        
-        # Verificar se o produto existe
-        cursor.execute('SELECT id FROM produtos WHERE id = ?', (produto_id,))
-        if not cursor.fetchone():
-            return jsonify({'error': 'Produto não encontrado'}), 404
-        
-        # Remover produto
-        cursor.execute('DELETE FROM produtos WHERE id = ?', (produto_id,))
-        # Remover referências nos pedidos ativos
-        cursor.execute('DELETE FROM pedidos_ativos WHERE produto_id = ?', (produto_id,))
+    produto = Produto.query.get(produto_id)
+    
+    if not produto:
+        return jsonify({'error': 'Produto não encontrado'}), 404
+    
+    db.session.delete(produto)
+    # Remover referências nos pedidos ativos
+    PedidoAtivo.query.filter_by(produto_id=produto_id).delete()
+    db.session.commit()
     
     return jsonify({'success': True})
 
 @app.route('/api/pedido', methods=['POST'])
 def salvar_pedido():
-    """Salva ou atualiza um pedido ativo"""
     data = request.json
     produto_id = data.get('produto_id')
     quantidade = data.get('quantidade')
     
-    with get_db() as conn:
-        cursor = conn.cursor()
-        
-        # Verificar se já existe pedido para este produto
-        cursor.execute('SELECT id, quantidade FROM pedidos_ativos WHERE produto_id = ?', (produto_id,))
-        existente = cursor.fetchone()
-        
-        if existente:
-            if quantidade == 0:
-                # Remover se quantidade for zero
-                cursor.execute('DELETE FROM pedidos_ativos WHERE produto_id = ?', (produto_id,))
-            else:
-                # Atualizar quantidade
-                cursor.execute('UPDATE pedidos_ativos SET quantidade = ? WHERE produto_id = ?', 
-                             (quantidade, produto_id))
-        else:
-            if quantidade > 0:
-                # Inserir novo pedido
-                cursor.execute('INSERT INTO pedidos_ativos (produto_id, quantidade) VALUES (?, ?)', 
-                             (produto_id, quantidade))
+    pedido = PedidoAtivo.query.filter_by(produto_id=produto_id).first()
     
+    if pedido:
+        if quantidade == 0:
+            db.session.delete(pedido)
+        else:
+            pedido.quantidade = quantidade
+    else:
+        if quantidade > 0:
+            novo_pedido = PedidoAtivo(produto_id=produto_id, quantidade=quantidade)
+            db.session.add(novo_pedido)
+    
+    db.session.commit()
     return jsonify({'success': True})
 
 @app.route('/api/pedidos', methods=['GET'])
 def get_pedidos():
-    """Retorna todos os pedidos ativos"""
-    with get_db() as conn:
-        cursor = conn.cursor()
-        cursor.execute('''
-            SELECT p.id, p.nome, p.preco, COALESCE(ped.quantidade, 0) as quantidade
-            FROM produtos p
-            LEFT JOIN pedidos_ativos ped ON p.id = ped.produto_id
-            ORDER BY p.id
-        ''')
-        resultados = cursor.fetchall()
-        
-        return jsonify([{
-            'id': r[0],
-            'nome': r[1],
-            'preco': r[2],
-            'quantidade': r[3]
-        } for r in resultados])
+    produtos = Produto.query.all()
+    pedidos = {p.produto_id: p.quantidade for p in PedidoAtivo.query.all()}
+    
+    return jsonify([{
+        'id': p.id,
+        'nome': p.nome,
+        'preco': p.preco,
+        'quantidade': pedidos.get(p.id, 0)
+    } for p in produtos])
 
 @app.route('/api/gravar_pedido', methods=['POST'])
 def gravar_pedido():
-    """Grava o pedido atual no histórico"""
     try:
         data = request.json
         itens = data.get('itens', [])
         total = data.get('total', 0)
         pedido_id = get_proximo_pedido_id()
         
-        # Usar uma transação separada para gravar o pedido
-        with get_db() as conn:
-            cursor = conn.cursor()
-            
-            # Gravar pedido no histórico com o ID específico e entregue = 0 (não entregue)
-            cursor.execute('''
-                INSERT INTO pedidos_gravados (id, pedido_json, total, entregue)
-                VALUES (?, ?, ?, ?)
-            ''', (pedido_id, json.dumps(itens), total, 0))
-            
-            # Limpar pedidos ativos
-            cursor.execute('DELETE FROM pedidos_ativos')
+        pedido = PedidoGravado(
+            id=pedido_id,
+            pedido_json=json.dumps(itens),
+            total=total,
+            entregue=0
+        )
+        db.session.add(pedido)
         
-        # Incrementar próximo ID em uma transação separada
+        # Limpar pedidos ativos
+        PedidoAtivo.query.delete()
+        
+        db.session.commit()
         incrementar_proximo_pedido_id()
         
         return jsonify({'success': True, 'pedido_id': pedido_id})
     
     except Exception as e:
-        print(f"Erro ao gravar pedido: {str(e)}")
+        db.session.rollback()
         return jsonify({'error': str(e)}), 500
 
 @app.route('/api/cancelar_pedido', methods=['POST'])
 def cancelar_pedido():
-    """Cancela o pedido atual (limpa o carrinho)"""
-    with get_db() as conn:
-        cursor = conn.cursor()
-        cursor.execute('DELETE FROM pedidos_ativos')
-    
+    PedidoAtivo.query.delete()
+    db.session.commit()
     return jsonify({'success': True})
 
 @app.route('/api/historico', methods=['GET'])
 def get_historico():
-    """Retorna todos os pedidos gravados"""
-    with get_db() as conn:
-        cursor = conn.cursor()
-        cursor.execute('''
-            SELECT id, pedido_json, total, entregue, data_hora 
-            FROM pedidos_gravados 
-            ORDER BY data_hora DESC
-        ''')
-        resultados = cursor.fetchall()
-        
-        historico = []
-        for r in resultados:
-            historico.append({
-                'id': r[0],
-                'itens': json.loads(r[1]),
-                'total': r[2],
-                'entregue': bool(r[3]),
-                'data_hora': r[4]
-            })
-        
-        return jsonify(historico)
+    pedidos = PedidoGravado.query.order_by(PedidoGravado.data_hora.desc()).all()
+    
+    historico = []
+    for p in pedidos:
+        historico.append({
+            'id': p.id,
+            'itens': json.loads(p.pedido_json),
+            'total': p.total,
+            'entregue': bool(p.entregue),
+            'data_hora': p.data_hora.isoformat()
+        })
+    
+    return jsonify(historico)
 
 @app.route('/api/marcar_entregue/<int:pedido_id>', methods=['PUT'])
 def marcar_entregue(pedido_id):
-    """Marca um pedido como entregue"""
-    with get_db() as conn:
-        cursor = conn.cursor()
-        cursor.execute('UPDATE pedidos_gravados SET entregue = 1 WHERE id = ?', (pedido_id,))
-        
-        if cursor.rowcount == 0:
-            return jsonify({'error': 'Pedido não encontrado'}), 404
+    pedido = PedidoGravado.query.get(pedido_id)
+    if not pedido:
+        return jsonify({'error': 'Pedido não encontrado'}), 404
     
+    pedido.entregue = 1
+    db.session.commit()
     return jsonify({'success': True})
 
 @app.route('/api/marcar_nao_entregue/<int:pedido_id>', methods=['PUT'])
 def marcar_nao_entregue(pedido_id):
-    """Marca um pedido como não entregue"""
-    with get_db() as conn:
-        cursor = conn.cursor()
-        cursor.execute('UPDATE pedidos_gravados SET entregue = 0 WHERE id = ?', (pedido_id,))
-        
-        if cursor.rowcount == 0:
-            return jsonify({'error': 'Pedido não encontrado'}), 404
+    pedido = PedidoGravado.query.get(pedido_id)
+    if not pedido:
+        return jsonify({'error': 'Pedido não encontrado'}), 404
     
+    pedido.entregue = 0
+    db.session.commit()
     return jsonify({'success': True})
 
 if __name__ == '__main__':
     init_db()
-    app.run(debug=True, host='0.0.0.0', port=5000)
+    app.run(debug=True)
