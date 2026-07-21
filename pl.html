@@ -1,0 +1,88 @@
+<!DOCTYPE html>
+<html>
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+  <style>
+    html, body { margin: 0; padding: 0; background: #000; height: 100%; overflow: hidden; }
+    video { width: 100%; height: 100%; object-fit: contain; background: #000; }
+    #playBtn {
+      position: fixed; top: 50%; left: 50%; transform: translate(-50%, -50%);
+      padding: 14px 28px; font-size: 18px; border-radius: 10px; border: none;
+      background: #0a84ff; color: #fff; z-index: 10; font-family: -apple-system, sans-serif;
+    }
+    #status {
+      position: fixed; bottom: 8px; left: 8px; right: 8px; color: #0f0;
+      font: 11px/1.4 Menlo, monospace; z-index: 10; word-break: break-all;
+    }
+  </style>
+  <!-- Em produção, considera fazer bundle local do shaka-player.compiled.js em vez de usar CDN -->
+  <script src="https://cdn.jsdelivr.net/npm/shaka-player@4.13.0/dist/shaka-player.compiled.js"></script>
+</head>
+<body>
+  <video id="video" playsinline muted></video>
+  <button id="playBtn">▶︎ Reproduzir</button>
+  <div id="status">a aguardar...</div>
+
+  <script>
+    // ---- CONFIGURA AQUI ----
+    const MANIFEST_URL = "https://media.axprod.net/TestVectors/Dash/protected_dash_1080p_h264_singlekey/manifest.mpd";
+    const CLEAR_KEYS = {
+      // "keyId em hex (32 chars)": "key em hex (32 chars)"
+      '4060a865887842679cbf91ae5bae1e72': 'fc35340837310cc0fb53de97e22a69e0'
+    };
+    // -------------------------
+
+    const video = document.getElementById('video');
+    const statusEl = document.getElementById('status');
+    const playBtn = document.getElementById('playBtn');
+
+    function log(msg) {
+      statusEl.textContent = msg;
+      console.log('[player]', msg);
+    }
+
+    async function initAndLoad() {
+      shaka.polyfill.installAll();
+
+      if (!shaka.Player.isBrowserSupported()) {
+        log('Motor sem suporte a MSE/ManagedMediaSource. Requer iOS 17.1+.');
+        return;
+      }
+
+      const player = new shaka.Player();
+      await player.attach(video);
+
+      player.configure({
+        drm: {
+          clearKeys: CLEAR_KEYS
+        },
+        streaming: {
+          lowLatencyMode: true,
+          rebufferingGoal: 0.5,
+          bufferingGoal: 6
+        }
+      });
+
+      player.addEventListener('error', (event) => {
+        log('Erro Shaka ' + event.detail.code + ': ' + event.detail.message);
+      });
+
+      try {
+        log('a carregar manifest...');
+        await player.load(MANIFEST_URL);
+        log('a reproduzir.');
+      } catch (e) {
+        log('Falha ao carregar (' + e.code + '): ' + e.message);
+      }
+    }
+
+    playBtn.addEventListener('click', () => {
+      playBtn.style.display = 'none';
+      video.muted = false;
+      initAndLoad();
+      video.play().catch((e) => log('play() falhou: ' + e.message));
+    });
+  </script>
+</body>
+</html>		  
