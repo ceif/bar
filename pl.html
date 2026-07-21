@@ -42,11 +42,11 @@
     .logTime { color: #666; margin-right: 6px; }
   </style>
   <!-- Em produção, considera fazer bundle local do shaka-player.compiled.js em vez de usar CDN -->
-  <script src="https://cdn.jsdelivr.net/npm/shaka-player@4.13.0/dist/shaka-player.compiled.js"></script>
+  <script src="https://cdn.jsdelivr.net/npm/shaka-player@5.2.0/dist/shaka-player.compiled.js"></script>
 </head>
 <body>
   <div id="videoWrap">
-    <video id="video" playsinline muted></video>
+    <video id="video" playsinline muted disableRemotePlayback></video>
     <button id="playBtn">▶︎ Reproduzir</button>
     <div id="status">a aguardar...</div>
   </div>
@@ -147,9 +147,11 @@
       try {
         log('a carregar manifest...');
         await player.load(MANIFEST_URL);
+        log('manifest carregado, a iniciar reprodução...');
+        await video.play();
         log('a reproduzir.');
       } catch (e) {
-        log('Falha ao carregar (' + e.code + '): ' + e.message);
+        log('Falha (' + (e.code || '') + '): ' + e.message);
       }
     }
 
@@ -157,7 +159,6 @@
       playBtn.style.display = 'none';
       video.muted = false;
       initAndLoad();
-      video.play().catch((e) => log('play() falhou: ' + e.message));
     });
   </script>
 </body>
